@@ -3,11 +3,11 @@ import { api } from "../api/client";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "./AuthContext"; // ✅ change this
+import { useAuth } from "./AuthContext"; // Use AuthContext for authentication
 
 export default function LoginPage() {
   const nav = useNavigate();
-  const { setToken } = useAuth(); // ✅ now comes from AuthContext
+  const { setToken } = useAuth(); // Get setToken from AuthContext
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,8 +20,8 @@ export default function LoginPage() {
     try {
       const res = await api.post("/auth/login", { email, password });
 
-      setToken(res.data.token); // ✅ IMPORTANT: triggers re-render
-      nav("/"); // ✅ redirect works instantly, no refresh
+      setToken(res.data.token); // Set token to trigger re-render
+      nav("/"); // Redirect to dashboard after login
 
     } catch (e: any) {
       setErr(e?.response?.data?.message ?? "Login failed");

@@ -20,8 +20,6 @@ export default function RegisterPage() {
       nav("/login");
     } catch (e: any) {
       setErr(e?.response?.data?.message ?? "Register failed");
-      console.log(e?.response?.data || e);
-
     } finally {
       setLoading(false);
     }

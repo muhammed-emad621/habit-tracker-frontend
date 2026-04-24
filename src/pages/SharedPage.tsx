@@ -24,9 +24,25 @@ const formatDuration = (ms: number) => {
   return `${days}d ${pad2(hours)}:${pad2(mins)}:${pad2(secs)}`;
 };
 
-const streakTime = (lastFailureDate: string | null) => {
-  if (!lastFailureDate) return "0d 00:00:00";
-  return formatDuration(Date.now() - new Date(lastFailureDate).getTime());
+const streakTime = (lastFailureDate: string | null, startDate?: string | null) => {
+  const base = lastFailureDate ?? startDate ?? null;
+
+  if (!base) return "0d 00:00:00";
+
+  const date = new Date(base);
+
+  // Handle invalid date
+  if (isNaN(date.getTime())) {
+    return "0d 00:00:00";
+  }
+
+  const now = Date.now();
+  const diff = now - date.getTime();
+
+  // Prevent negative differences or timezone issues
+  if (diff < 0) return "0d 00:00:00";
+
+  return formatDuration(diff);
 };
 
 export default function SharedPage() {

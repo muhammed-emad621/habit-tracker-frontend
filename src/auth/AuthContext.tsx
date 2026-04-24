@@ -17,7 +17,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setToken = (t: string | null) => {
     if (t) localStorage.setItem("token", t);
     else localStorage.removeItem("token");
-    setTokenState(t); // ✅ triggers re-render immediately
+    setTokenState(t); // Update state to trigger re-render
   };
 
   const logout = () => setToken(null);

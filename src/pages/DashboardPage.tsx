@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 import Button from "../components/Button";
 import Input from "../components/Input";
+import Notification from "../components/Notification";
 import { useAuth } from "../auth/AuthContext";
 
 
@@ -27,7 +28,7 @@ const streakTime = (lastFailureDate: string | null, startDate?: string | null) =
 };
 
 type Habit = {
-  _id: string;
+  id: string;
   name: string;
   shareCode: string;
   startDate?: string | null;
@@ -36,7 +37,7 @@ type Habit = {
   almostRelapsesCount?: number;
   almostRelapses?: { date: string; note?: string }[];
 
-  sharedWithNames?: string[]; // ✅ show names here
+  sharedWithNames?: string[]; // Show names of users who shared the habit
 };
 
 type SharedHabit = {
@@ -60,6 +61,23 @@ export default function DashboardPage() {
 
   // 3-dot menu
   const [openMenuFor, setOpenMenuFor] = useState<string | null>(null);
+
+  // Notifications
+  const [notifications, setNotifications] = useState<{ id: number; message: string; type: "success" | "error" | "info" }[]>([]);
+  let notificationId = 0;
+
+  const showNotification = (message: string, type: "success" | "error" | "info" = "info") => {
+    const id = ++notificationId;
+    setNotifications(prev => [...prev, { id, message, type }]);
+  };
+
+  const removeNotification = (id: number) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  // Loading states for actions
+  const [addingHabit, setAddingHabit] = useState(false);
+  const [joiningHabit, setJoiningHabit] = useState(false);
 
   // live ticker for streak time
   const [, setTick] = useState(0);
@@ -91,13 +109,17 @@ export default function DashboardPage() {
   }, []);
 
   const addHabit = async () => {
-    if (!newHabitName.trim()) return;
+    if (!newHabitName.trim() || addingHabit) return;
+    setAddingHabit(true);
     try {
       await api.post("/habits/add", { name: newHabitName.trim() });
       setNewHabitName("");
       await load();
+      showNotification("Habit added successfully!", "success");
     } catch (e: any) {
-      alert(e?.response?.data?.message ?? "Failed to add habit");
+      showNotification(e?.response?.data?.message ?? "Failed to add habit", "error");
+    } finally {
+      setAddingHabit(false);
     }
   };
 
@@ -105,8 +127,9 @@ export default function DashboardPage() {
     try {
       await api.post("/habits/fail", { habitId });
       await load();
+      showNotification("Relapse logged", "info");
     } catch (e: any) {
-      alert(e?.response?.data?.message ?? "Failed to log relapse");
+      showNotification(e?.response?.data?.message ?? "Failed to log relapse", "error");
     }
   };
 
@@ -114,42 +137,52 @@ export default function DashboardPage() {
     try {
       await api.post("/habits/urge", { habitId, note: "" });
       await load();
+      showNotification("Almost relapse logged", "info");
     } catch (e: any) {
-      alert(e?.response?.data?.message ?? "Failed to log almost relapse");
+      showNotification(e?.response?.data?.message ?? "Failed to log almost relapse", "error");
     }
   };
 
   const joinShared = async () => {
-    if (!joinCode.trim()) return;
+    if (!joinCode.trim() || joiningHabit) return;
+    setJoiningHabit(true);
     try {
       await api.post("/habits/share", { code: joinCode.trim() });
       setJoinCode("");
       await load();
-      alert("Joined successfully 💙");
+      showNotification("Joined successfully 💙", "success");
     } catch (e: any) {
       const msg = e?.response?.data?.message;
       if (msg === "Already shared") {
         setJoinCode("");
         await load();
-        alert("You’re already supporting this habit 💙");
+        showNotification("You’re already supporting this habit 💙", "info");
         return;
       }
-      alert(msg ?? "Failed to join");
+      showNotification(msg ?? "Failed to join", "error");
+    } finally {
+      setJoiningHabit(false);
     }
   };
 
-  const deleteHabit = async (habitId: string) => {
-    const ok = confirm("Delete this habit? This cannot be undone.");
-    if (!ok) return;
+const deleteHabit = async (habitId: string | undefined) => {
+  if (!habitId) {
+    showNotification("Something went wrong. Missing habit ID.", "error");
+    return;
+  }
 
-    try {
-      await api.delete(`/habits/${habitId}`);
-      setOpenMenuFor(null);
-      await load();
-    } catch (e: any) {
-      alert(e?.response?.data?.message ?? "Failed to delete habit");
-    }
-  };
+  const ok = confirm("Delete this habit? This cannot be undone.");
+  if (!ok) return;
+
+  try {
+    await api.delete(`/habits/${habitId}`);
+    setOpenMenuFor(null);
+    await load();
+    showNotification("Habit deleted successfully", "success");
+  } catch (e: any) {
+    showNotification(e?.response?.data?.message ?? "Failed to delete habit", "error");
+  }
+};
 
   const myHabitsEmpty = useMemo(() => !loading && habits.length === 0, [loading, habits.length]);
 
@@ -172,8 +205,12 @@ export default function DashboardPage() {
               onChange={(e) => setNewHabitName(e.target.value)}
               placeholder="e.g. hair pulling"
             />
-            <button onClick={addHabit} className="rounded-xl bg-slate-900 px-4 font-semibold text-white">
-              Add
+            <button
+              onClick={addHabit}
+              disabled={addingHabit}
+              className="rounded-xl bg-slate-900 px-4 font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {addingHabit ? "Adding..." : "Add"}
             </button>
           </div>
         </div>
@@ -187,8 +224,12 @@ export default function DashboardPage() {
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
               placeholder="e.g. 5TM0G1"
             />
-            <button onClick={joinShared} className="rounded-xl bg-slate-900 px-4 font-semibold text-white">
-              Join
+            <button
+              onClick={joinShared}
+              disabled={joiningHabit}
+              className="rounded-xl bg-slate-900 px-4 font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {joiningHabit ? "Joining..." : "Join"}
             </button>
           </div>
         </div>
@@ -202,7 +243,7 @@ export default function DashboardPage() {
 
           <div className="mt-3 space-y-3">
             {habits.map((h) => (
-              <div key={h._id} className="rounded-3xl bg-white p-6 shadow relative">
+              <div key={h.id} className="rounded-3xl bg-white p-6 shadow relative">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-xl font-bold break-words">{h.name}</p>
@@ -242,7 +283,11 @@ export default function DashboardPage() {
                             .reverse()
                             .map((u, idx) => (
                               <li key={idx}>
-                                {new Date(u.date).toLocaleString()}
+                                {(() => {
+                                  if (!u.date) return "—";
+                                  const d = new Date(u.date);
+                                  return isNaN(d.getTime()) ? "—" : d.toLocaleString();
+                                })()}
                                 {u.note ? ` — ${u.note}` : ""}
                               </li>
                             ))}
@@ -258,7 +303,7 @@ export default function DashboardPage() {
                     {/* 3-dot menu */}
                     <div className="relative mt-2">
                       <button
-                        onClick={() => setOpenMenuFor(openMenuFor === h._id ? null : h._id)}
+                        onClick={() => setOpenMenuFor(openMenuFor === h.id ? null : h.id)}
                         className="rounded-lg px-2 py-1 text-slate-700 hover:bg-slate-100"
                         aria-label="Menu"
                         title="Menu"
@@ -266,10 +311,10 @@ export default function DashboardPage() {
                         ⋮
                       </button>
 
-                      {openMenuFor === h._id && (
+                      {openMenuFor === h.id && (
                         <div className="absolute right-0 mt-2 w-40 rounded-xl border bg-white shadow-lg overflow-hidden z-10">
                           <button
-                            onClick={() => deleteHabit(h._id)}
+                            onClick={() => deleteHabit(h.id)}
                             className="w-full text-left px-4 py-2 text-red-600 font-semibold hover:bg-red-50"
                           >
                             Delete
@@ -281,10 +326,10 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  <Button className="bg-red-600 hover:bg-red-500" onClick={() => relapse(h._id)}>
+                  <Button className="bg-red-600 hover:bg-red-500" onClick={() => relapse(h.id)}>
                     I relapsed 😔
                   </Button>
-                  <Button className="bg-amber-600 hover:bg-amber-500" onClick={() => urge(h._id)}>
+                  <Button className="bg-amber-600 hover:bg-amber-500" onClick={() => urge(h.id)}>
                     Almost relapsed ⚠️
                   </Button>
                 </div>
@@ -339,6 +384,16 @@ export default function DashboardPage() {
         </div>
 
       </div>
+
+      {/* Notifications */}
+      {notifications.map((n) => (
+        <Notification
+          key={n.id}
+          message={n.message}
+          type={n.type}
+          onClose={() => removeNotification(n.id)}
+        />
+      ))}
     </div>
   );
 }

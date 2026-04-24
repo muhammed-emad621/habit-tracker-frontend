@@ -1,0 +1,16 @@
+{
+  "name": "Habit Tracker",
+  "short_name": "Habits",
+  "description": "Track your habits and get support from friends",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

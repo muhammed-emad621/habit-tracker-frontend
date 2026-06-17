@@ -31,10 +31,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 p-4">
+      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow dark:bg-slate-900">
         <h1 className="text-2xl font-bold">Welcome back</h1>
-        <p className="text-slate-600 mt-1">Login to continue</p>
+        <p className="text-slate-600 dark:text-slate-300 mt-1">Login to continue</p>
 
         <div className="mt-5 space-y-3">
           <Input
@@ -55,9 +55,9 @@ export default function LoginPage() {
           </Button>
         </div>
 
-        <p className="mt-4 text-sm text-slate-600">
+        <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
           No account?{" "}
-          <Link className="font-semibold text-slate-900" to="/register">
+          <Link className="font-semibold text-slate-900 dark:text-slate-100" to="/register">
             Register
           </Link>
         </p>

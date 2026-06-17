@@ -26,10 +26,10 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 p-4">
+      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow dark:bg-slate-900">
         <h1 className="text-2xl font-bold">Create account</h1>
-        <p className="text-slate-600 mt-1">Start tracking gently</p>
+        <p className="text-slate-600 dark:text-slate-300 mt-1">Start tracking gently</p>
 
         <div className="mt-5 space-y-3">
           <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
@@ -43,8 +43,8 @@ export default function RegisterPage() {
           </Button>
         </div>
 
-        <p className="mt-4 text-sm text-slate-600">
-          Have an account? <Link className="font-semibold text-slate-900" to="/login">Login</Link>
+        <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+          Have an account? <Link className="font-semibold text-slate-900 dark:text-slate-100" to="/login">Login</Link>
         </p>
       </div>
     </div>

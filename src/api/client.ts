@@ -1,7 +1,11 @@
 import axios from "axios";
 
+const defaultApiUrl = import.meta.env.DEV
+  ? "http://localhost:3000"
+  : "https://habit-tracker-backend-t7h7.onrender.com";
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000",
+  baseURL: import.meta.env.VITE_API_URL || defaultApiUrl,
 });
 
 api.interceptors.request.use((config) => {

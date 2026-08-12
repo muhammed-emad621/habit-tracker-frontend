@@ -121,14 +121,14 @@ export default function DashboardPage() {
       ]);
 
       // Sort habits by start date to keep a stable UI order across reloads
-      const mineHabits = (mineRes.data.habits || []).slice().sort((a, b) => {
+      const mineHabits = (mineRes.data.habits || []).slice().sort((a: Habit, b: Habit) => {
         const ta = a.startDate ? new Date(a.startDate).getTime() : 0;
         const tb = b.startDate ? new Date(b.startDate).getTime() : 0;
         return ta - tb;
       });
 
       const shared = sharedRes.data.habits || sharedRes.data || [];
-      const sharedHabitsSorted = (shared || []).slice().sort((a, b) => {
+      const sharedHabitsSorted = (shared || []).slice().sort((a: SharedHabit, b: SharedHabit) => {
         const ta = a.startDate ? new Date(a.startDate).getTime() : 0;
         const tb = b.startDate ? new Date(b.startDate).getTime() : 0;
         return ta - tb;

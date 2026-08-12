@@ -141,6 +141,11 @@ export default function DashboardPage() {
   };
 
   const relapse = async (habitId: string) => {
+    if (!habitId) {
+      showNotification("Something went wrong. Missing habit ID.", "error");
+      return;
+    }
+
     try {
       await api.post("/habits/fail", { habitId });
       await load();
@@ -151,6 +156,11 @@ export default function DashboardPage() {
   };
 
   const urge = async (habitId: string) => {
+    if (!habitId) {
+      showNotification("Something went wrong. Missing habit ID.", "error");
+      return;
+    }
+
     try {
       await api.post("/habits/urge", { habitId, note: "" });
       await load();

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import Button from "../components/Button";
@@ -74,16 +74,29 @@ export default function DashboardPage() {
 
   // Notifications
   const [notifications, setNotifications] = useState<{ id: number; message: string; type: "success" | "error" | "info"; onConfirm?: () => void; onCancel?: () => void; confirmText?: string; cancelText?: string }[]>([]);
-  let notificationId = 0;
+  const notificationIdRef = useRef(0);
 
   const showNotification = useCallback((message: string, type: "success" | "error" | "info" = "info", onConfirm?: () => void, onCancel?: () => void, confirmText?: string, cancelText?: string) => {
-    const id = ++notificationId;
+    const id = ++notificationIdRef.current;
     setNotifications(prev => [...prev, { id, message, type, onConfirm, onCancel, confirmText, cancelText }]);
   }, []);
 
   const removeNotification = useCallback((id: number) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   }, []);
+
+  const extractErrorMessage = (e: unknown, fallback = "An error occurred") => {
+    try {
+      if (e && typeof e === "object") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const anyE = e as any;
+        return anyE?.response?.data?.message ?? anyE?.message ?? String(anyE);
+      }
+      return String(e);
+    } catch {
+      return fallback;
+    }
+  };
 
   // Loading states for actions
   const [addingHabit, setAddingHabit] = useState(false);
@@ -124,11 +137,13 @@ export default function DashboardPage() {
       setHabits(mineHabits);
       setSharedHabits(sharedHabitsSorted);
       setProfile(profileRes.data);
-    } catch (e: any) {
-      if (e?.response?.status === 401) {
+    } catch (e: unknown) {
+      // prefer server message when available
+      const msg = extractErrorMessage(e, "Failed to load data");
+      if (msg === "Not authorized" || (e && typeof e === 'object' && ((e as { response?: { status?: number } }).response?.status === 401))) {
         setErr("Not authorized");
       } else {
-        setErr(e?.response?.data?.message ?? "Failed to load data");
+        setErr(msg);
       }
     } finally {
       setLoading(false);
@@ -147,8 +162,8 @@ export default function DashboardPage() {
       setNewHabitName("");
       await load();
       showNotification("Habit added successfully!", "success");
-    } catch (e: any) {
-      showNotification(e?.response?.data?.message ?? "Failed to add habit", "error");
+    } catch (e: unknown) {
+      showNotification(extractErrorMessage(e, "Failed to add habit"), "error");
     } finally {
       setAddingHabit(false);
     }
@@ -164,8 +179,8 @@ export default function DashboardPage() {
       await api.post("/habits/fail", { habitId });
       await load();
       showNotification("Relapse logged", "info");
-    } catch (e: any) {
-      showNotification(e?.response?.data?.message ?? "Failed to log relapse", "error");
+    } catch (e: unknown) {
+      showNotification(extractErrorMessage(e, "Failed to log relapse"), "error");
     }
   };
 
@@ -179,8 +194,8 @@ export default function DashboardPage() {
       await api.post("/habits/urge", { habitId, note: "" });
       await load();
       showNotification("Almost relapse logged", "info");
-    } catch (e: any) {
-      showNotification(e?.response?.data?.message ?? "Failed to log almost relapse", "error");
+    } catch (e: unknown) {
+      showNotification(extractErrorMessage(e, "Failed to log almost relapse"), "error");
     }
   };
 
@@ -192,15 +207,16 @@ export default function DashboardPage() {
       setJoinCode("");
       await load();
       showNotification("Joined successfully 💙", "success");
-    } catch (e: any) {
-      const msg = e?.response?.data?.message;
+    } catch (e: unknown) {
+      // check server-provided message first
+      const msg = e && typeof e === 'object' ? (e as { response?: { data?: { message?: string } } }).response?.data?.message : undefined;
       if (msg === "Already shared") {
         setJoinCode("");
         await load();
         showNotification("You’re already supporting this habit 💙", "info");
         return;
       }
-      showNotification(msg ?? "Failed to join", "error");
+      showNotification(msg ?? extractErrorMessage(e, "Failed to join"), "error");
     } finally {
       setJoiningHabit(false);
     }
@@ -218,8 +234,8 @@ const deleteHabit = async (habitId: string | undefined) => {
       setOpenMenuFor(null);
       await load();
       showNotification("Habit deleted successfully", "success");
-    } catch (e: any) {
-      showNotification(e?.response?.data?.message ?? "Failed to delete habit", "error");
+    } catch (e: unknown) {
+      showNotification(extractErrorMessage(e, "Failed to delete habit"), "error");
     }
   };
 
@@ -239,8 +255,8 @@ const leaveSharedHabit = async (habit: SharedHabit) => {
       await api.delete(`/habits/shared/${habitId}`);
       await load();
       showNotification("Left shared habit successfully", "success");
-    } catch (e: any) {
-      showNotification(e?.response?.data?.message ?? "Failed to leave shared habit", "error");
+    } catch (e: unknown) {
+      showNotification(extractErrorMessage(e, "Failed to leave shared habit"), "error");
     }
   };
 
@@ -264,8 +280,8 @@ const leaveSharedHabit = async (habit: SharedHabit) => {
         await api.delete(`/habits/${habitId}/shared/${userId}`);
         await load();
         showNotification(`${userName} can no longer view this habit`, "success");
-      } catch (e: any) {
-        showNotification(e?.response?.data?.message ?? "Failed to remove viewer", "error");
+      } catch (e: unknown) {
+          showNotification(extractErrorMessage(e, "Failed to remove viewer"), "error");
       } finally {
         setRemovingViewer(null);
       }

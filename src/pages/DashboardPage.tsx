@@ -107,8 +107,22 @@ export default function DashboardPage() {
         api.get("/auth/profile"),
       ]);
 
-      setHabits(mineRes.data.habits);
-      setSharedHabits(sharedRes.data.habits || sharedRes.data);
+      // Sort habits by start date to keep a stable UI order across reloads
+      const mineHabits = (mineRes.data.habits || []).slice().sort((a, b) => {
+        const ta = a.startDate ? new Date(a.startDate).getTime() : 0;
+        const tb = b.startDate ? new Date(b.startDate).getTime() : 0;
+        return ta - tb;
+      });
+
+      const shared = sharedRes.data.habits || sharedRes.data || [];
+      const sharedHabitsSorted = (shared || []).slice().sort((a, b) => {
+        const ta = a.startDate ? new Date(a.startDate).getTime() : 0;
+        const tb = b.startDate ? new Date(b.startDate).getTime() : 0;
+        return ta - tb;
+      });
+
+      setHabits(mineHabits);
+      setSharedHabits(sharedHabitsSorted);
       setProfile(profileRes.data);
     } catch (e: any) {
       if (e?.response?.status === 401) {
